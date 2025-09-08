@@ -1,13 +1,13 @@
 # Automated Job Search & Scraper
 
-A modular Python application designed to automate the process of finding and collecting job postings from multiple online sources. It fetches job listings from APIs, scrapes the full job descriptions using a headless browser, and saves the enriched data to a CSV file for further processing.
+A modular Python application designed to automate the process of finding and collecting job postings from multiple online sources. It fetches job listings from APIs, scrapes the full job descriptions using a headless browser, and saves the enriched data to a CSV and a jsonl file for further processing.
 
 ## Features
 
 - **Multi-Source Job Aggregation**: Fetches job listings from multiple APIs (currently Adzuna and Arbeitnow).
 - **Intelligent Scraping**: Uses Playwright with stealth measures to scrape full job descriptions and contact emails, bypassing common bot-detection systems.
 - **Data Enrichment**: Populates a structured data model with scraped details.
-- **CSV Export**: Saves all collected data into a clean, timestamped CSV file.
+- **Exports**: Saves all collected data into a clean, timestamped CSV and jsonl file.
 - **Configurable & Flexible**:
   - Secrets are managed securely via a `.env` file.
   - Search parameters (keywords, location, remote-only) are provided via command-line arguments at runtime.
@@ -17,10 +17,10 @@ A modular Python application designed to automate the process of finding and col
 ```
 .
 ├── api/                # API client modules (Adzuna, Arbeitnow)
-├── data/               # Default output directory for CSV files
+├── data/               # Default output directory for CSV and jsonl files
 ├── models/             # Data models (e.g., the Job dataclass)
-├── services/           # Business logic (JobSearch, ScraperService, CSVWriter)
-├── .env                # Stores secret API keys (must be created manually)
+├── services/           # Business logic (JobSearch, ScraperService, CSVWriter, JSONLWriter)
+├── .env                # Stores secret API keys
 ├── .gitignore          # Git ignore file
 ├── main.py             # Main entry point of the application
 ├── README.md           # This file
@@ -115,4 +115,4 @@ During testing, you might not want to scrape all results. Use the `--limit` flag
 python main.py "data analyst" "Canada" --remote --limit 5
 ```
 
-The output CSV files will be saved in the `data/` directory by default, with a filename like `remote_software_engineer_20250908_103000.csv`.
+The output CSV and jsonl files will be saved in the `data/` directory by default, with a filename like `remote_software_engineer_20250908_103000.csv`.
