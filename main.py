@@ -9,10 +9,15 @@ from services.job_search import JobSearch
 from services.csv_writer import CSVWriter
 from services.jsonl_writer import JSONLWriter
 from services.scraper import ScraperService
+from langdetect import detect, LangDetectException
 
 
 async def main(
-    search_what: str, search_where: str, remote_only: bool, test_limit: int = 0
+    search_what: str,
+    search_where: str,
+    remote_only: bool,
+    target_lang: str,
+    test_limit: int = 0,
 ):
     """
     Main asynchronous function to run the job search and scraping pipeline.
@@ -58,21 +63,39 @@ async def main(
     print(f"Found {len(initial_jobs)} jobs. Starting scraping and saving process...")
 
     # 2. Loop through each job, enrich it, and save it immediately
+    saved_count = 0
     for index, job in enumerate(initial_jobs):
         print(f"--- Processing job {index + 1}/{len(initial_jobs)} ---")
 
         enriched_job = await scraper_service.enrich_job(job)
 
-        if enriched_job:
-            # Save the result to all configured writers
-            for writer in writers:
-                writer.append_job(enriched_job)
+        if (
+            enriched_job
+            and enriched_job.job_description
+            and "SCRAPING" not in enriched_job.job_description
+        ):
+            # --- LANGUAGE FILTERING LOGIC ---
+            try:
+                detected_lang = detect(enriched_job.job_description)
+                if detected_lang == target_lang:
+                    print(
+                        f"  -> Language '{detected_lang}' matches target. Saving job."
+                    )
+                    # Save the result to all configured writers
+                    for writer in writers:
+                        writer.append_job(enriched_job)
+                    saved_count += 1
+                else:
+                    print(
+                        f"  -> Skipping job: Language detected as '{detected_lang}', does not match target '{target_lang}'."
+                    )
+            except LangDetectException:
+                print("  -> Could not detect language from job description. Skipping.")
 
-        # Add a small, respectful delay between scraping individual jobs
         if index < len(initial_jobs) - 1:
             await asyncio.sleep(random.uniform(1, 3))
 
-    print("Job search and export complete.")
+    print(f"Job search and export complete. Saved {saved_count} jobs.")
 
 
 if __name__ == "__main__":
@@ -93,6 +116,13 @@ if __name__ == "__main__":
         help="Add this flag to search for remote-only jobs.",
     )
     parser.add_argument(
+        "--lang",
+        type=str,
+        default="en",
+        help="Filter jobs by language (e.g., 'en' for English). Default: en",
+    )
+
+    parser.add_argument(
         "--limit",
         type=int,
         default=0,
@@ -101,12 +131,12 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Run the main asynchronous function with parsed arguments
     asyncio.run(
         main(
             search_what=args.search_what,
             search_where=args.search_where,
             remote_only=args.remote,
+            target_lang=args.lang,
             test_limit=args.limit,
         )
     )
