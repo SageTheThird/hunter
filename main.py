@@ -10,6 +10,7 @@ from services.csv_writer import CSVWriter
 from services.jsonl_writer import JSONLWriter
 from services.scraper import ScraperService
 from langdetect import detect, LangDetectException
+from services.proxy_manager import ProxyManager
 
 
 async def main(
@@ -27,6 +28,7 @@ async def main(
     load_dotenv()
     ADZUNA_APP_ID = os.getenv("ADZUNA_APP_ID")
     ADZUNA_APP_KEY = os.getenv("ADZUNA_APP_KEY")
+    WEBSHARE_API_KEY = os.getenv("WEBSHARE_API_KEY")
 
     if not ADZUNA_APP_ID or not ADZUNA_APP_KEY:
         print("Error: ADZUNA_APP_ID and ADZUNA_APP_KEY must be set in the .env file.")
@@ -36,7 +38,6 @@ async def main(
     adzuna_client = AdzunaClient(app_id=ADZUNA_APP_ID, app_key=ADZUNA_APP_KEY)
     arbeitnow_client = ArbeitnowClient()
     job_search = JobSearch(clients=[adzuna_client, arbeitnow_client])
-    scraper_service = ScraperService()
 
     # Create a dynamic search term for the filename
     search_term_prefix = "remote_" if remote_only else ""
@@ -44,6 +45,8 @@ async def main(
     csv_writer = CSVWriter(search_term=search_term)
     jsonl_writer = JSONLWriter(search_term=search_term)
     writers = [csv_writer, jsonl_writer]
+    proxy_manager = ProxyManager(api_key=WEBSHARE_API_KEY) if WEBSHARE_API_KEY else None
+    scraper_service = ScraperService(proxy_manager=proxy_manager)
 
     # 1. Fetch the initial list of all jobs
     print(
