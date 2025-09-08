@@ -62,40 +62,58 @@ async def main(
 
     print(f"Found {len(initial_jobs)} jobs. Starting scraping and saving process...")
 
-    # 2. Loop through each job, enrich it, and save it immediately
     saved_count = 0
+    blocked_count = 0
+    lang_filtered_count = 0
+
+    # 2. Loop through each job, enrich it, and save it immediately
     for index, job in enumerate(initial_jobs):
         print(f"--- Processing job {index + 1}/{len(initial_jobs)} ---")
 
         enriched_job = await scraper_service.enrich_job(job)
 
-        if (
-            enriched_job
-            and enriched_job.job_description
+        if not enriched_job:
+            continue
+
+        scrape_successful = (
+            enriched_job.job_description
             and "SCRAPING" not in enriched_job.job_description
-        ):
-            # --- LANGUAGE FILTERING LOGIC ---
+        )
+        should_save = True  # Default to saving every record
+
+        # Only perform language filtering if we have a valid description
+        if scrape_successful:
             try:
                 detected_lang = detect(enriched_job.job_description)
-                if detected_lang == target_lang:
+                if detected_lang != target_lang:
                     print(
-                        f"  -> Language '{detected_lang}' matches target. Saving job."
+                        f"  -> Skipping save: Language '{detected_lang}' does not match target '{target_lang}'."
                     )
-                    # Save the result to all configured writers
-                    for writer in writers:
-                        writer.append_job(enriched_job)
-                    saved_count += 1
-                else:
-                    print(
-                        f"  -> Skipping job: Language detected as '{detected_lang}', does not match target '{target_lang}'."
-                    )
+                    should_save = False  # Override the default
+                    lang_filtered_count += 1
             except LangDetectException:
-                print("  -> Could not detect language from job description. Skipping.")
+                print(
+                    "  -> Skipping save: Could not detect language from job description."
+                )
+                should_save = False
+                lang_filtered_count += 1
+        else:
+            blocked_count += 1
+
+        # Save the job if it wasn't filtered out
+        if should_save:
+            print("  -> Saving job record.")
+            for writer in writers:
+                writer.append_job(enriched_job)
+            saved_count += 1
 
         if index < len(initial_jobs) - 1:
             await asyncio.sleep(random.uniform(1, 3))
 
-    print(f"Job search and export complete. Saved {saved_count} jobs.")
+    print("\n--- Job search and export complete. ---")
+    print(f"Successfully saved: {saved_count} jobs")
+    print(f"Blocked by detection: {blocked_count} jobs (URLs saved for retry)")
+    print(f"Filtered by language: {lang_filtered_count} jobs")
 
 
 if __name__ == "__main__":
