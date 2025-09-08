@@ -35,7 +35,6 @@ class AdzunaClient(JobClient):
             )
             response.raise_for_status()
             jobs_data = response.json().get("results", [])
-            print(jobs_data[0])
             return [
                 Job(
                     title=job.get("title"),

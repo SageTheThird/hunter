@@ -77,3 +77,54 @@ class ScraperService:
             await browser.close()
         print("Scraping process complete.")
         return jobs
+
+    async def enrich_job(self, job: Job) -> Job | None:
+        """
+        Takes a single Job object, scrapes its URL, and returns the enriched object.
+        Returns None if a critical error occurs.
+        """
+        if not job.url:
+            return job  # Return as-is if no URL
+
+        print(f"Scraping URL: {job.url}")
+
+        async with Stealth().use_async(async_playwright()) as p:
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent=self.USER_AGENT,
+                # ... (other context settings) ...
+            )
+            page = await context.new_page()
+
+            try:
+                await page.goto(job.url, timeout=60000, wait_until="domcontentloaded")
+                body_text = await page.locator("body").inner_text(timeout=15000)
+
+                if (
+                    "suspicious behaviour" in body_text
+                    or "access denied" in body_text.lower()
+                ):
+                    print("  -> BLOCKED by bot detection.")
+                    job.job_description = "SCRAPING_BLOCKED"
+                else:
+                    job.job_description = body_text.strip()
+                    print("  -> Successfully scraped job description.")
+                    found_emails = re.findall(self.EMAIL_REGEX, body_text)
+                    if found_emails:
+                        for email in found_emails:
+                            if "example.com" not in email and "sentry.io" not in email:
+                                job.email = email
+                                print(f"  -> Found email: {job.email}")
+                                break
+
+                return job
+
+            except Exception as e:
+                print(
+                    f"  -> An unexpected error occurred while scraping {job.url}: {e}"
+                )
+                job.job_description = f"SCRAPING_FAILED: {e}"
+                return job  # Return the job with an error message
+            finally:
+                await context.close()
+                await browser.close()
