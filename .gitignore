@@ -1,0 +1,28 @@
+venv/
+/venv/
+__pycache__/
+
+# Environment variables
+.env
+
+# IDE and editor configuration files
+.vscode/
+.idea/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Generated data files
+# This will ignore the 'data' directory where your CSVs are saved.
+data/
+
+# Python bytecode
+*.pyc
+*.pyo
+*.pyd
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
