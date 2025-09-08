@@ -1,6 +1,6 @@
 # Automated Job Search & Scraper
 
-This is a powerful, modular Python application designed to automate the process of finding and collecting job postings from multiple online sources. It fetches job listings from APIs, scrapes the full job descriptions using a headless browser, and saves the enriched data to a CSV file for further processing.
+A modular Python application designed to automate the process of finding and collecting job postings from multiple online sources. It fetches job listings from APIs, scrapes the full job descriptions using a headless browser, and saves the enriched data to a CSV file for further processing.
 
 ## Features
 
@@ -34,8 +34,8 @@ Follow these steps to get the application running on your local machine.
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
-cd <repository-directory>
+git https://github.com/SageTheThird/hunter
+cd hunter
 ```
 
 ### 2. Create a Python Virtual Environment
